@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blogger CRM — Управление блогерами</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --bg-input: #334155;
+            --accent: #6366f1;
+            --accent-hover: #4f46e5;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --status-green: #22c55e;
+            --status-green-bg: rgba(34, 197, 94, 0.15);
+            --status-red: #ef4444;
+            --status-red-bg: rgba(239, 68, 68, 0.15);
+            --border-color: #334155;
+            --danger: #ef4444;
+            --danger-hover: #dc2626;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Авторизация */
+        .auth-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(8px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .auth-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            padding: 30px;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 380px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+
+        .auth-box h2 {
+            margin-bottom: 20px;
+            color: var(--text-main);
+        }
+
+        .auth-box .form-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        .auth-box label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .auth-box input {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: #fff;
+            outline: none;
+        }
+
+        .auth-box input:focus {
+            border-color: var(--accent);
+        }
+
+        .auth-error {
+            color: var(--status-red);
+            font-size: 0.85rem;
+            margin-top: 10px;
+            display: none;
+        }
+
+        /* Шапка */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .header-title h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .header-title p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-top: 4px;
+        }
+
+        /* Статистика */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background-color: var(--bg-card);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+        }
+
+        .stat-card .label {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin-bottom: 5px;
+        }
+
+        .stat-card .value {
+            font-size: 1.6rem;
+            font-weight: 700;
+        }
+
+        /* Основной контент */
+        .main-layout {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 25px;
+        }
+
+        @media (max-width: 900px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Форма добавления */
+        .form-card {
+            background-color: var(--bg-card);
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            height: fit-content;
+        }
+
+        .form-card h2 {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 10px 12px;
+            background-color: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-main);
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus, .form-group textarea:focus {
+            border-color: var(--accent);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .btn {
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: background-color 0.2s;
+        }
+
+        .btn:hover {
+            background-color: var(--accent-hover);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .btn-outline:hover {
+            color: white;
+            border-color: white;
+        }
+
+        /* Поиск и фильтры */
+        .controls-bar {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 10px 15px;
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-main);
+            outline: none;
+        }
+
+        /* Список карточек */
+        .bloggers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .blogger-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .blogger-info h3 {
+            font-size: 1.1rem;
+            margin-bottom: 4px;
+        }
+
+        .channel-name {
+            font-size: 0.85rem;
+            color: var(--accent);
+            word-break: break-all;
+        }
+
+        /* Чекбокс статуса */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .status-badge.answered {
+            background-color: var(--status-green-bg);
+            color: var(--status-green);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        .status-badge.waiting {
+            background-color: var(--status-red-bg);
+            color: var(--status-red);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .status-badge.answered .status-dot { background-color: var(--status-green); }
+        .status-badge.waiting .status-dot { background-color: var(--status-red); }
+
+        .card-body {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 15px;
+        }
+
+        .email-line {
+            margin-bottom: 8px;
+            word-break: break-all;
+        }
+
+        .msg-text {
+            background-color: rgba(0,0,0,0.2);
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            max-height: 60px;
+            overflow-y: auto;
+            margin-top: 8px;
+            white-space: pre-wrap;
+        }
+
+        .card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid var(--border-color);
+            padding-top: 12px;
+            font-size: 0.8rem;
+        }
+
+        .counter-box {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--bg-input);
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+
+        .btn-counter {
+            background: none;
+            border: none;
+            color: var(--text-main);
+            font-weight: bold;
+            cursor: pointer;
+            width: 20px;
+            height: 20px;
+        }
+
+        .btn-counter:hover {
+            color: var(--accent);
+        }
+
+        .btn-delete {
+            background: none;
+            border: none;
+            color: var(--status-red);
+            cursor: pointer;
+            font-size: 0.8rem;
+            margin-left: 10px;
+        }
+
+        .btn-delete:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Экран авторизации -->
+    <div class="auth-overlay" id="authOverlay">
+        <div class="auth-box">
+            <h2>Авторизация</h2>
+            <div class="form-group">
+                <label>Логин</label>
+                <input type="text" id="authLogin" placeholder="Введите логин">
+            </div>
+            <div class="form-group">
+                <label>Пароль</label>
+                <input type="password" id="authPass" placeholder="Введите пароль">
+            </div>
+            <button class="btn" onclick="login()">Войти</button>
+            <div class="auth-error" id="authError">Неверный логин или пароль!</div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Шапка -->
+        <header>
+            <div class="header-title">
+                <h1>Blogger Tracker CRM</h1>
+                <p>Управление базой контактов и отслеживание статусов ответов</p>
+            </div>
+            <button class="btn-outline" onclick="logout()">Выйти</button>
+        </header>
+
+        <!-- Статистика -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="label">Всего блогеров</div>
+                <div class="value" id="statTotal">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Ответили</div>
+                <div class="value" style="color: var(--status-green);" id="statAnswered">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">В ожидании</div>
+                <div class="value" style="color: var(--status-red);" id="statWaiting">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Всего отправлено писем</div>
+                <div class="value" style="color: var(--accent);" id="statMessages">0</div>
+            </div>
+        </div>
+
+        <!-- Основной макет -->
+        <div class="main-layout">
+            <!-- Форма добавления -->
+            <div class="form-card">
+                <h2>Добавить блогера</h2>
+                <form id="addBloggerForm">
+                    <div class="form-group">
+                        <label>Имя блогера *</label>
+                        <input type="text" id="name" required placeholder="Например: Иван Иванов">
+                    </div>
+                    <div class="form-group">
+                        <label>Канал / Ссылка *</label>
+                        <input type="text" id="channel" required placeholder="@channel или ссылка">
+                    </div>
+                    <div class="form-group">
+                        <label>Email *</label>
+                        <input type="email" id="email" required placeholder="blogger@gmail.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Текст обращения</label>
+                        <textarea id="message" placeholder="Здравствуйте! Хотим предложить сотрудничество..."></textarea>
+                    </div>
+                    <button type="submit" class="btn">Сохранить карточку</button>
+                </form>
+            </div>
+
+            <!-- Контент и фильтры -->
+            <div>
+                <div class="controls-bar">
+                    <div class="search-box">
+                        <input type="text" id="searchInput" placeholder="Поиск по имени, каналу или email..." oninput="renderCards()">
+                    </div>
+                </div>
+
+                <div class="bloggers-grid" id="bloggersGrid">
+                    <!-- Карточки будут динамически генерироваться здесь -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // База данных в LocalStorage
+        let bloggers = JSON.parse(localStorage.getItem('bloggers_db')) || [];
+
+        // Логика авторизации
+        function checkAuth() {
+            if (sessionStorage.getItem('isAuth') === 'true') {
+                document.getElementById('authOverlay').style.display = 'none';
+            } else {
+                document.getElementById('authOverlay').style.display = 'flex';
+            }
+        }
+
+        function login() {
+            const l = document.getElementById('authLogin').value;
+            const p = document.getElementById('authPass').value;
+            const error = document.getElementById('authError');
+
+            if (l === 'blogger' && p === 'reviews') {
+                sessionStorage.setItem('isAuth', 'true');
+                document.getElementById('authOverlay').style.display = 'none';
+                error.style.display = 'none';
+            } else {
+                error.style.display = 'block';
+            }
+        }
+
+        function logout() {
+            sessionStorage.removeItem('isAuth');
+            checkAuth();
+        }
+
+        // Сохранение в LocalStorage
+        function saveData() {
+            localStorage.setItem('bloggers_db', JSON.stringify(bloggers));
+            updateStats();
+            renderCards();
+        }
+
+        // Добавление блогера
+        document.getElementById('addBloggerForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const name = document.getElementById('name').value.trim();
+            const channel = document.getElementById('channel').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const message = document.getElementById('message').value.trim();
+
+            // Проверка дубликатов
+            const isDuplicate = bloggers.some(b => 
+                b.email.toLowerCase() === email.toLowerCase() || 
+                b.channel.toLowerCase() === channel.toLowerCase()
+            );
+
+            if (isDuplicate) {
+                alert('Блогер с таким Email или Каналом уже существует в вашей базе!');
+                return;
+            }
+
+            const newBlogger = {
+                id: Date.now(),
+                name,
+                channel,
+                email,
+                message,
+                answered: false,
+                sendCount: 1,
+                dateAdded: new Date().toLocaleDateString('ru-RU')
+            };
+
+            bloggers.unshift(newBlogger);
+            saveData();
+
+            this.reset();
+        });
+
+        // Переключение статуса ответа
+        function toggleStatus(id) {
+            bloggers = bloggers.map(b => {
+                if (b.id === id) b.answered = !b.answered;
+                return b;
+            });
+            saveData();
+        }
+
+        // Изменение счетчика отправленных сообщений
+        function changeCounter(id, delta) {
+            bloggers = bloggers.map(b => {
+                if (b.id === id) {
+                    b.sendCount = Math.max(0, b.sendCount + delta);
+                }
+                return b;
+            });
+            saveData();
+        }
+
+        // Удаление блогера (Исправленная функция)
+        function deleteBlogger(id) {
+            if (confirm('Вы уверены, что хотите удалить эту карточку?')) {
+                bloggers = bloggers.filter(b => b.id !== id);
+                saveData();
+            }
+        }
+
+        // Обновление статистики
+        function updateStats() {
+            const total = bloggers.length;
+            const answered = bloggers.filter(b => b.answered).length;
+            const waiting = total - answered;
+            const msgTotal = bloggers.reduce((sum, b) => sum + (b.sendCount || 0), 0);
+
+            document.getElementById('statTotal').innerText = total;
+            document.getElementById('statAnswered').innerText = answered;
+            document.getElementById('statWaiting').innerText = waiting;
+            document.getElementById('statMessages').innerText = msgTotal;
+        }
+
+        // Отрисовка карточек
+        function renderCards() {
+            const grid = document.getElementById('bloggersGrid');
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            grid.innerHTML = '';
+
+            const filtered = bloggers.filter(b => 
+                b.name.toLowerCase().includes(search) || 
+                b.channel.toLowerCase().includes(search) || 
+                b.email.toLowerCase().includes(search)
+            );
+
+            if (filtered.length === 0) {
+                grid.innerHTML = '<div style="color: var(--text-muted); grid-column: 1/-1;">Блогеры не найдены</div>';
+                return;
+            }
+
+            filtered.forEach(b => {
+                const card = document.createElement('div');
+                card.className = 'blogger-card';
+
+                const statusClass = b.answered ? 'answered' : 'waiting';
+                const statusText = b.answered ? 'Ответил' : 'Ожидает';
+
+                card.innerHTML = `
+                    <div>
+                        <div class="card-header">
+                            <div class="blogger-info">
+                                <h3>${escapeHtml(b.name)}</h3>
+                                <div class="channel-name">${escapeHtml(b.channel)}</div>
+                            </div>
+                            <div class="status-badge ${statusClass}" onclick="toggleStatus(${b.id})">
+                                <span class="status-dot"></span>
+                                <span>${statusText}</span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="email-line">📧 ${escapeHtml(b.email)}</div>
+                            ${b.message ? `<div class="msg-text">${escapeHtml(b.message)}</div>` : ''}
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <span>📅 ${b.dateAdded}</span>
+                        <div style="display:flex; align-items:center;">
+                            <div class="counter-box">
+                                <button class="btn-counter" onclick="changeCounter(${b.id}, -1)">-</button>
+                                <span>Отправлено: <b>${b.sendCount}</b></span>
+                                <button class="btn-counter" onclick="changeCounter(${b.id}, 1)">+</button>
+                            </div>
+                            <button class="btn-delete" onclick="deleteBlogger(${b.id})">Удалить</button>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function escapeHtml(text) {
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // Инициализация при загрузке
+        checkAuth();
+        updateStats();
+        renderCards();
+    </script>
+</body>
+</html>
